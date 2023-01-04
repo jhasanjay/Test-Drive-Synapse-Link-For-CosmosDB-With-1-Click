@@ -1,6 +1,8 @@
 {
 	"name": "1-SalesForecastingWithAML",
 	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
 		"bigDataPool": {
 			"referenceName": "ws1sparkpool1",
 			"type": "BigDataPoolReference"
@@ -14,7 +16,8 @@
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
-				"spark.dynamicAllocation.maxExecutors": "2"
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "52d63fb2-386d-46ab-8239-ceac0625bf70"
 			}
 		},
 		"metadata": {
@@ -28,10 +31,10 @@
 				"name": "python"
 			},
 			"a365ComputeOptions": {
-				"id": "/subscriptions/4eeedd72-d937-4243-86d1-c3982a84d924/resourceGroups/nashahz0923-1/providers/Microsoft.Synapse/workspaces/mcr2rfcjdavtn5kupocws1/bigDataPools/ws1sparkpool1",
+				"id": "/subscriptions/2288f692-036c-4822-9f97-616245d10648/resourceGroups/sj2023_rg/providers/Microsoft.Synapse/workspaces/sjvlnvajjk2s35qpocws1/bigDataPools/ws1sparkpool1",
 				"name": "ws1sparkpool1",
 				"type": "Spark",
-				"endpoint": "https://mcr2rfcjdavtn5kupocws1.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/ws1sparkpool1",
+				"endpoint": "https://sjvlnvajjk2s35qpocws1.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/ws1sparkpool1",
 				"auth": {
 					"type": "AAD",
 					"authResource": "https://dev.azuresynapse.net"
@@ -39,7 +42,8 @@
 				"sparkVersion": "2.4",
 				"nodeCount": 5,
 				"cores": 8,
-				"memory": 56
+				"memory": 56,
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -99,11 +103,11 @@
 					}
 				},
 				"source": [
-					"AMLWsname='<Name For AML Workspace to be Deployed>'\r\n",
-					"AMLWssubscription_id='<Subscription Id Where AML Workspace will be created, Same Subscription where Package is Deployed>'\r\n",
-					"AMLWsresource_group='<Resource Group Where AML Workspace will be created.Same Resource group where Package is Deployed>'"
+					"AMLWsname='synapsedemo'\r\n",
+					"AMLWssubscription_id='2288f692-036c-4822-9f97-616245d10648'\r\n",
+					"AMLWsresource_group='sj2023_rg'"
 				],
-				"execution_count": 1
+				"execution_count": 6
 			},
 			{
 				"cell_type": "markdown",
@@ -163,7 +167,7 @@
 					"    .mode('append')\\\r\n",
 					"    .save()"
 				],
-				"execution_count": 16
+				"execution_count": 2
 			},
 			{
 				"cell_type": "markdown",
@@ -207,7 +211,7 @@
 					"    spark.cosmos.container 'Products'\n",
 					");"
 				],
-				"execution_count": 13
+				"execution_count": 3
 			},
 			{
 				"cell_type": "markdown",
@@ -257,7 +261,7 @@
 					"\n",
 					"display(data)"
 				],
-				"execution_count": 14
+				"execution_count": 4
 			},
 			{
 				"cell_type": "markdown",
@@ -289,10 +293,10 @@
 					"               subscription_id=AMLWssubscription_id,\r\n",
 					"               resource_group=AMLWsresource_group,\r\n",
 					"               create_resource_group=True,\r\n",
-					"               location='South Central US' ## Optional, Update If Required\r\n",
+					"               location='East US' ## Optional, Update If Required\r\n",
 					"               )"
 				],
-				"execution_count": 15
+				"execution_count": 7
 			},
 			{
 				"cell_type": "code",
@@ -326,7 +330,7 @@
 					"outputDf = pd.DataFrame(data = output, index = [''])\n",
 					"outputDf.T"
 				],
-				"execution_count": 17
+				"execution_count": 8
 			},
 			{
 				"cell_type": "markdown",
@@ -394,7 +398,7 @@
 					"from azureml.core.dataset import Dataset\n",
 					"train_dataset = Dataset.Tabular.from_delimited_files(path=datastore.path('dataset/SurfaceSales_train.csv'))"
 				],
-				"execution_count": 18
+				"execution_count": 9
 			},
 			{
 				"cell_type": "markdown",
@@ -433,7 +437,7 @@
 					"\n",
 					""
 				],
-				"execution_count": 19
+				"execution_count": 10
 			},
 			{
 				"cell_type": "markdown",
@@ -456,7 +460,7 @@
 					"X_test[time_column_name] = pd.to_datetime(X_test[time_column_name])\n",
 					"y_predictions, X_trans = fitted_model.forecast(X_test)"
 				],
-				"execution_count": 20
+				"execution_count": 11
 			},
 			{
 				"cell_type": "markdown",
@@ -542,7 +546,7 @@
 					"plt.legend((test_pred, test_test), ('prediction', 'truth'), loc='upper left', fontsize=8)\n",
 					"plt.show()"
 				],
-				"execution_count": 21
+				"execution_count": 12
 			},
 			{
 				"cell_type": "markdown",

@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": "IF (NOT EXISTS(SELECT * FROM sys.credentials WHERE name = 'sj2023csl01'))\n    THROW 50000, 'As a prerequisite, create a credential with Azure Cosmos DB key in SECRET option:\n    CREATE CREDENTIAL [sj2023csl01]\n    WITH IDENTITY = ''SHARED ACCESS SIGNATURE'', SECRET = ''<Enter your Azure Cosmos DB key here>''', 0\nGO\n\nSELECT TOP 100 *\nFROM OPENROWSET(​PROVIDER = 'CosmosDB',\n                CONNECTION = 'Account=sj2023csl01;Database=CosmosDemoDB',\n                OBJECT = 'IoTDeviceInfo',\n                SERVER_CREDENTIAL = 'sj2023csl01'\n) AS [IoTDeviceInfo]\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
