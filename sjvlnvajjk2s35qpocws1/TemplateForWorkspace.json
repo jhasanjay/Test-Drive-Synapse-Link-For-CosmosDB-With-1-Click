@@ -7,9 +7,25 @@
 			"metadata": "Workspace name",
 			"defaultValue": "sjvlnvajjk2s35qpocws1"
 		},
+		"AzureDataLakeStorage1_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+		},
+		"AzureDataLakeStorage2_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage2'"
+		},
 		"CosmosDBLink_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'CosmosDBLink'"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://sjvlnvajjk2s35qpoc.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://synapsedstorage2c21c009e.dfs.core.windows.net/"
 		},
 		"keyVaultLinkedservice_properties_typeProperties_baseUrl": {
 			"type": "string",
@@ -20,6 +36,52 @@
 		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureDataLakeStorage2')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage2_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage2_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
 		{
 			"name": "[concat(parameters('workspaceName'), '/CosmosDBLink')]",
 			"type": "Microsoft.Synapse/workspaces/linkedServices",
@@ -94,6 +156,26 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "IF (NOT EXISTS(SELECT * FROM sys.credentials WHERE name = 'sj2023csl01'))\n    THROW 50000, 'As a prerequisite, create a credential with Azure Cosmos DB key in SECRET option:\n    CREATE CREDENTIAL [sj2023csl01]\n    WITH IDENTITY = ''SHARED ACCESS SIGNATURE'', SECRET = ''<Enter your Azure Cosmos DB key here>''', 0\nGO\n\nSELECT TOP 100 *\nFROM OPENROWSET(​PROVIDER = 'CosmosDB',\n                CONNECTION = 'Account=sj2023csl01;Database=CosmosDemoDB',\n                OBJECT = 'IoTDeviceInfo',\n                SERVER_CREDENTIAL = 'sj2023csl01'\n) AS [IoTDeviceInfo]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/1-SalesForecastingWithAML')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -114,7 +196,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "5e704827-0ac3-4b84-b9e4-0a4098b398ae"
+						"spark.autotune.trackingId": "52d63fb2-386d-46ab-8239-ceac0625bf70"
 					}
 				},
 				"metadata": {
@@ -139,15 +221,13 @@
 						"sparkVersion": "2.4",
 						"nodeCount": 5,
 						"cores": 8,
-						"memory": 56,
-						"automaticScaleJobs": false
+						"memory": 56
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"# Leverage Power of Azure Synapse Link for Cosmos DB and Spark SQL\n",
 							"With Synapse Link, you can now directly connect to your Azure Cosmos DB containers from Azure Synapse Analytics and access the analytical store with no separate connectors. This notebook scenario is to \n",
@@ -367,7 +447,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Predictive Analytics\n",
 							"Leverage power of Azure Machine Learning's AutoML to build a Forecasting Model Predictive analytics can help us to study and discover the factors that determine the number of sales that a retail store will have in the future.This notebook scenario is [Microsoft Surface](https://www.microsoft.com/en-us/surface) sales forecasting, with artificially created data. The business challenge is a distributor that wants to predict how many units are necessary in the local warehouse to supply the stores in the area.\n",
@@ -404,7 +483,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import azureml.core\n",
 							"import pandas as pd\n",
@@ -440,7 +518,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"### Data Preparation - Feature engineering, Splitting train & test datasets\n",
 							""
@@ -448,7 +525,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Initial variables\n",
 							"time_column_name = 'weekStarting'\n",
@@ -511,7 +587,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"### Training the Models using AutoML Forecasting\n",
 							"\n",
@@ -520,7 +595,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Parameters\n",
 							"time_series_settings = {\n",
@@ -553,14 +627,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"### Retrieving the Best Model and Forecasting"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Retrieving the best model\n",
 							"best_run, fitted_model = remote_run.get_output()\n",
@@ -579,14 +651,12 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"### Plotting the Results"
 						]
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import pandas as pd\n",
 							"import numpy as np\n",
@@ -668,7 +738,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Closing\n",
 							"\n",
@@ -704,7 +773,7 @@
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
 						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "9e60d730-8668-4e4f-bf94-48bd817c628e"
+						"spark.autotune.trackingId": "57353c21-1ce0-42ab-b26b-5420835e4322"
 					}
 				},
 				"metadata": {
@@ -729,15 +798,13 @@
 						"sparkVersion": "2.4",
 						"nodeCount": 5,
 						"cores": 8,
-						"memory": 56,
-						"automaticScaleJobs": false
+						"memory": 56
 					},
 					"sessionKeepAliveTimeout": 30
 				},
 				"cells": [
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"# Leverage Power of Azure Synapse Link for Cosmos DB and Spark SQL\n",
 							"With Synapse Link, you can now directly connect to your Azure Cosmos DB containers from Azure Synapse Analytics and access the analytical store with no separate connectors. This notebook scenario is to \n",
@@ -1236,7 +1303,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"from pyspark.sql.functions import col\n",
 							"from pyspark.sql.types import *\n",
@@ -1388,6 +1454,467 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/departures_analysis')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "synapse3",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "1ed84f7d-c93c-403c-93c4-f8e47b3d69dd"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/2288f692-036c-4822-9f97-616245d10648/resourceGroups/sj2023_rg/providers/Microsoft.Synapse/workspaces/sjvlnvajjk2s35qpocws1/bigDataPools/synapse3",
+						"name": "synapse3",
+						"type": "Spark",
+						"endpoint": "https://sjvlnvajjk2s35qpocws1.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/synapse3",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.2",
+						"nodeCount": 3,
+						"cores": 8,
+						"memory": 56,
+						"automaticScaleJobs": false
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"\n",
+							"---\n",
+							"\n",
+							"## Do an analysis of the data BEFORE loading it into CosmosDB\n",
+							"\n",
+							"### - Read a raw data CSV file from Azure Blob Storage\n",
+							"### - Explore it with Synapse\n",
+							"### - Identify good potential CosmosDB Partition Keys (high cardinality, well distributed)\n",
+							"### - Identify poor potential CosmosDB Partition Keys (low cardinality, skewed distribution)\n",
+							"\n",
+							".\n",
+							"\n",
+							"---\n",
+							"\n",
+							".\n",
+							"\n",
+							".\n",
+							""
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"microsoft": {
+								"language": "python"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%pyspark\n",
+							"blob_account_name = \"sjvlnvajjk2s35qpoc\"\n",
+							"blob_container_name = \"raw\"\n",
+							"from pyspark.sql import SparkSession\n",
+							"\n",
+							"sc = SparkSession.builder.getOrCreate()\n",
+							"token_library = sc._jvm.com.microsoft.azure.synapse.tokenlibrary.TokenLibrary\n",
+							"blob_sas_token = token_library.getConnectionString(\"AzureBlobStorage_cjoakimstorage22\")\n",
+							"\n",
+							"spark.conf.set(\n",
+							"    'fs.azure.sas.%s.%s.blob.core.windows.net' % (blob_container_name, blob_account_name),\n",
+							"    blob_sas_token)\n",
+							"\n",
+							"blob_url = 'wasbs://raw@cjoakimstorage22.blob.core.windows.net/air_travel_departures.csv'\n",
+							"\n",
+							"df = spark.read.load(blob_url, format='csv', header=True, sep='|')\n",
+							"display(df.limit(8))\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 14
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"## Display the observed structure of the data"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"df.printSchema()"
+						],
+						"outputs": [],
+						"execution_count": 15
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"## Display the Row and Column Counts"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"print((df.count(), len(df.columns)))"
+						],
+						"outputs": [],
+						"execution_count": 16
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"\n",
+							"## Explore the **airlineid** attribute as a potential CosmosDB Partition Key"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"attr_name = 'airlineid'\n",
+							"df.select(attr_name).distinct().count()"
+						],
+						"outputs": [],
+						"execution_count": 17
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"from pyspark.sql.functions import desc\n",
+							"display(df.groupBy(attr_name).count().sort(desc(\"count\")))"
+						],
+						"outputs": [],
+						"execution_count": 18
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"## Explore the **from_iata** attribute as a potential CosmosDB Partition Key"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"attr_name = 'from_iata'\n",
+							"df.select(attr_name).distinct().count()"
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"from pyspark.sql.functions import desc\n",
+							"display(df.groupBy(attr_name).count().sort(desc(\"count\")))"
+						],
+						"outputs": [],
+						"execution_count": 20
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"## Explore the **to_iata** attribute as a potential CosmosDB Partition Key\n",
+							""
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"attr_name = 'to_iata'\n",
+							"df.select(attr_name).distinct().count()"
+						],
+						"outputs": [],
+						"execution_count": 21
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"from pyspark.sql.functions import desc\n",
+							"display(df.groupBy(attr_name).count().sort(desc(\"count\")))"
+						],
+						"outputs": [],
+						"execution_count": 22
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"## Explore the **to_airport_country** attribute as a potential CosmosDB Partition Key "
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"attr_name = 'to_airport_country'\n",
+							"df.select(attr_name).distinct().count()"
+						],
+						"outputs": [],
+						"execution_count": 23
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"from pyspark.sql.functions import desc\n",
+							"display(df.groupBy(attr_name).count().sort(desc(\"count\")))"
+						],
+						"outputs": [],
+						"execution_count": 24
+					},
+					{
+						"cell_type": "markdown",
+						"metadata": {
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							" ## Explore the **route** attribute as a potential CosmosDB Partition Key"
+						]
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": true
+						},
+						"source": [
+							"attr_name = 'route'\n",
+							"df.select(attr_name).distinct().count()"
+						],
+						"outputs": [],
+						"execution_count": 25
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"from pyspark.sql.functions import desc\n",
+							"\n",
+							"display(df.groupBy(attr_name).count().sort(desc(\"count\")))"
+						],
+						"outputs": [],
+						"execution_count": 26
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/ws1sparkpool1')]",
 			"type": "Microsoft.Synapse/workspaces/bigDataPools",
 			"apiVersion": "2019-06-01-preview",
@@ -1413,6 +1940,31 @@
 			"location": "eastus"
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/synapse3')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"autoPause": {
+					"enabled": true,
+					"delayInMinutes": 15
+				},
+				"autoScale": {
+					"enabled": true,
+					"maxNodeCount": 10,
+					"minNodeCount": 3
+				},
+				"nodeCount": 0,
+				"nodeSize": "Medium",
+				"nodeSizeFamily": "MemoryOptimized",
+				"sparkVersion": "3.2",
+				"isComputeIsolationEnabled": false,
+				"sessionLevelPackagesEnabled": true,
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/sjvlnvajjk2s35qpocws1p1')]",
 			"type": "Microsoft.Synapse/workspaces/sqlPools",
 			"apiVersion": "2019-06-01-preview",
@@ -1429,35 +1981,6 @@
 			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"content": {
-					"query": "IF (NOT EXISTS(SELECT * FROM sys.credentials WHERE name = 'sj2023csl01'))\n    THROW 50000, 'As a prerequisite, create a credential with Azure Cosmos DB key in SECRET option:\n    CREATE CREDENTIAL [sj2023csl01]\n    WITH IDENTITY = ''SHARED ACCESS SIGNATURE'', SECRET = ''<Enter your Azure Cosmos DB key here>''', 0\nGO\n\nSELECT TOP 100 *\nFROM OPENROWSET(​PROVIDER = 'CosmosDB',\n                CONNECTION = 'Account=sj2023csl01;Database=CosmosDemoDB',\n                OBJECT = 'IoTDeviceInfo',\n                SERVER_CREDENTIAL = 'sj2023csl01'\n) AS [IoTDeviceInfo]\n",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "master",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/synapse3')]",
-			"type": "Microsoft.Synapse/workspaces/bigDataPools",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"annotations": []
-			},
 			"dependsOn": []
 		}
 	]

@@ -5,8 +5,20 @@
 		"workspaceName": {
 			"value": "sjvlnvajjk2s35qpocws1"
 		},
+		"AzureDataLakeStorage1_accountKey": {
+			"value": ""
+		},
+		"AzureDataLakeStorage2_accountKey": {
+			"value": ""
+		},
 		"CosmosDBLink_connectionString": {
 			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://sjvlnvajjk2s35qpoc.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"value": "https://synapsedstorage2c21c009e.dfs.core.windows.net/"
 		},
 		"keyVaultLinkedservice_properties_typeProperties_baseUrl": {
 			"value": "@{concat('https://',linkedService().keyVaultName,'.vault.azure.net/')}"
